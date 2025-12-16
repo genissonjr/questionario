@@ -1,29 +1,48 @@
 import { useState } from "react";
+import axios from "axios";
 
 function App() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-
   const [questionario, setQuestionario] = useState(null);
   const [indicePergunta, setIndicePergunta] = useState(0);
   const [pontuacao, setPontuacao] = useState(0);
   const [finalizado, setFinalizado] = useState(false);
+  const [carregando, setCarregando] = useState(false); // Adicionei um estado de loading
 
   async function iniciarQuestionario() {
-    try {
-      const response = await fetch("http://localhost:3001/iniciar-questionario", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, email })
-      });
+    if (!nome.trim() || !email.trim()) {
+      alert("Por favor, preencha nome e email!");
+      return;
+    }
 
-      const data = await response.json();
-      setQuestionario(data);
+    setCarregando(true);
+    
+    try {
+      const response = await axios.post(
+        "http://localhost:3001/iniciar-questionario",
+        { nome, email }
+      );
+
+      setQuestionario(response.data);
       setIndicePergunta(0);
       setPontuacao(0);
       setFinalizado(false);
     } catch (error) {
-      console.error("Erro ao iniciar questionário:", error);
+      console.error("Erro detalhado:", error);
+      
+      if (error.response) {
+        // Servidor respondeu com erro
+        alert(`Erro ${error.response.status}: ${error.response.data?.message || "Erro no servidor"}`);
+      } else if (error.request) {
+        // Requisição feita mas sem resposta
+        alert("Servidor não respondeu. Verifique se o backend está rodando na porta 3001.");
+      } else {
+        // Erro na configuração
+        alert(`Erro: ${error.message}`);
+      }
+    } finally {
+      setCarregando(false);
     }
   }
 
@@ -49,6 +68,7 @@ function App() {
           placeholder="Nome"
           value={nome}
           onChange={e => setNome(e.target.value)}
+          style={{ padding: 8, margin: 5, width: 200 }}
         />
 
         <br /><br />
@@ -58,55 +78,66 @@ function App() {
           placeholder="Email"
           value={email}
           onChange={e => setEmail(e.target.value)}
+          style={{ padding: 8, margin: 5, width: 200 }}
         />
 
         <br /><br />
 
-        <button onClick={iniciarQuestionario}>
-          Começar
+        <button 
+          onClick={iniciarQuestionario}
+          disabled={carregando}
+          style={{ padding: 10, width: 100 }}
+        >
+          {carregando ? "Carregando..." : "Começar"}
         </button>
+        
+        {carregando && <p>Aguarde, iniciando questionário...</p>}
       </div>
     );
   }
 
-  // TELA FINAL
+  // TELA DO QUESTIONÁRIO (adicione esta parte se ainda não tem)
   if (finalizado) {
     return (
       <div style={{ padding: 20 }}>
-        <h2>Questionário finalizado</h2>
-        <p>Nome: {questionario.usuario?.nome}</p>
-        <p>Email: {questionario.usuario?.email}</p>
-        <p>Pontuação: {pontuacao}</p>
-
+        <h1>Questionário Finalizado!</h1>
+        <h2>Pontuação total: {pontuacao}</h2>
         <button onClick={() => setQuestionario(null)}>
-          Reiniciar
+          Voltar ao início
         </button>
       </div>
     );
   }
 
-  // PERGUNTA ATUAL
   const perguntaAtual = questionario.perguntas[indicePergunta];
-
+  
   return (
     <div style={{ padding: 20 }}>
-      <h2>{perguntaAtual.descricao}</h2>
-
-      {perguntaAtual.opcoes.map((opcao, index) => (
-        <button
-          key={index}
-          onClick={() => responderPergunta(opcao.pontos)}
-          style={{ display: "block", margin: "8px 0" }}
-        >
-          {opcao.descricao}
-        </button>
-      ))}
-
-      <p>
-        Pergunta {indicePergunta + 1} de {questionario.perguntas.length}
-      </p>
+      <h1>{questionario.titulo || "Questionário"}</h1>
+      <h3>Pergunta {indicePergunta + 1} de {questionario.perguntas.length}</h3>
+      
+      <h2>{perguntaAtual.texto}</h2>
+      
+      <div>
+        {perguntaAtual.opcoes.map((opcao, index) => (
+          <button
+            key={index}
+            onClick={() => responderPergunta(opcao.pontos)}
+            style={{ 
+              display: 'block', 
+              margin: '10px 0', 
+              padding: 10,
+              width: 300 
+            }}
+          >
+            {opcao.texto}
+          </button>
+        ))}
+      </div>
+      
+      <p>Pontuação atual: {pontuacao}</p>
     </div>
   );
 }
 
-export default App;
+export default App; // Certifique-se que tem esta linha
