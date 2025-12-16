@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>TypeError: Cannot destructure property &#39;nome&#39; of &#39;req.body&#39; as it is undefined.<br> &nbsp; &nbsp;at file:///C:/Users/Joyce%20Britto/Desktop/Harve/projeto_final/backend-questionario/src/server.js:22:11<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\Joyce Britto\Desktop\Harve\projeto_final\backend-questionario\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\Joyce Britto\Desktop\Harve\projeto_final\backend-questionario\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at Route.dispatch (C:\Users\Joyce Britto\Desktop\Harve\projeto_final\backend-questionario\node_modules\router\lib\route.js:117:3)<br> &nbsp; &nbsp;at handle (C:\Users\Joyce Britto\Desktop\Harve\projeto_final\backend-questionario\node_modules\router\index.js:435:11)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\Joyce Britto\Desktop\Harve\projeto_final\backend-questionario\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at C:\Users\Joyce Britto\Desktop\Harve\projeto_final\backend-questionario\node_modules\router\index.js:295:15<br> &nbsp; &nbsp;at processParams (C:\Users\Joyce Britto\Desktop\Harve\projeto_final\backend-questionario\node_modules\router\index.js:582:12)<br> &nbsp; &nbsp;at next (C:\Users\Joyce Britto\Desktop\Harve\projeto_final\backend-questionario\node_modules\router\index.js:291:5)<br> &nbsp; &nbsp;at read (C:\Users\Joyce Britto\Desktop\Harve\projeto_final\backend-questionario\node_modules\body-parser\lib\read.js:54:5)</pre>
+</body>
+</html>
