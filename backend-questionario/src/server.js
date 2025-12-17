@@ -21,32 +21,63 @@ const conexao = await mysql.createConnection({
    CONTROLE DE TENTATIVAS (MEMÓRIA)
 ================================ */
 let contadorTentativas = 0;
-const tentativas = [];
 
 /* ===============================
-   GET QUESTIONÁRIO
-   (perguntas + opções)
+   ROTA: CRIAR / BUSCAR USUÁRIO
+================================ */
+app.post("/usuarios", async (req, res) => {
+  try {
+    const { nome, email } = req.body;
+
+    if (!nome || !email) {
+      return res.status(400).json({ erro: "Nome e email obrigatórios" });
+    }
+
+    // Verificar se email já existe
+    const [usuarios] = await conexao.execute(
+      "SELECT id, nome, email FROM usuarios WHERE email = ?",
+      [email]
+    );
+
+    if (usuarios.length > 0) {
+      return res.json(usuarios[0]); // usuário já existe
+    }
+
+    // Criar novo usuário
+    const [resultado] = await conexao.execute(
+      "INSERT INTO usuarios (nome, email) VALUES (?, ?)",
+      [nome, email]
+    );
+
+    res.status(201).json({
+      id: resultado.insertId,
+      nome,
+      email
+    });
+  } catch (error) {
+    console.error("Erro ao salvar/buscar usuário:", error);
+    res.status(500).json({ erro: "Erro ao salvar/buscar usuário" });
+  }
+});
+
+/* ===============================
+   ROTA: BUSCAR QUESTIONÁRIO
 ================================ */
 app.get("/questionario", async (req, res) => {
   try {
-    // 🔹 Buscar perguntas
     const [perguntas] = await conexao.execute(
       "SELECT id, descricao FROM perguntas ORDER BY id"
     );
 
-    if (perguntas.length === 0) {
-      return res.status(404).json({ erro: "Nenhuma pergunta encontrada" });
-    }
-
-    // 🔹 Buscar opções
     const [opcoes] = await conexao.execute(
-      "SELECT pergunta_id, descricao, pontos FROM opcoes ORDER BY ordem_op"
+      `SELECT id, descricao, pontos, pergunta_id
+       FROM opcoes
+       ORDER BY pergunta_id, ordem_op`
     );
 
-    // 🔹 Montar estrutura esperada pelo React
     const perguntasFormatadas = perguntas.map((p) => ({
       id: p.id,
-      pergunta: p.descricao, // 👈 aqui está o ajuste correto
+      pergunta: p.descricao,
       opcoes: opcoes
         .filter((o) => o.pergunta_id === p.id)
         .map((o) => ({
@@ -55,17 +86,11 @@ app.get("/questionario", async (req, res) => {
         }))
     }));
 
-    const questionario = {
-      id: 1, // id lógico do questionário
+    res.json({
+      id: 1,
       titulo: "Questionário",
-      usuario: {
-        nome: "",
-        email: ""
-      },
       perguntas: perguntasFormatadas
-    };
-
-    res.json(questionario);
+    });
   } catch (error) {
     console.error("Erro ao buscar questionário:", error);
     res.status(500).json({ erro: "Erro ao buscar questionário" });
@@ -73,30 +98,14 @@ app.get("/questionario", async (req, res) => {
 });
 
 /* ===============================
-   POST INICIAR TENTATIVA
-   (sem banco)
+   ROTA: INICIAR TENTATIVA
 ================================ */
 app.post("/questionario/iniciar", (req, res) => {
-  try {
-    contadorTentativas++;
+  contadorTentativas++;
 
-    const { nome, email } = req.body;
-
-    const tentativa = {
-      idTentativa: contadorTentativas,
-      nome,
-      email,
-      dataInicio: new Date()
-    };
-
-    tentativas.push(tentativa);
-
-    res.status(201).json({
-      idTentativa: tentativa.idTentativa
-    });
-  } catch (error) {
-    res.status(500).json({ erro: "Erro ao iniciar tentativa" });
-  }
+  res.json({
+    idTentativa: contadorTentativas
+  });
 });
 
 /* ===============================

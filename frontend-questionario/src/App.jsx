@@ -1,45 +1,41 @@
 import { useState } from "react";
 
 function App() {
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+
+  const [usuario, setUsuario] = useState(null);
   const [questionario, setQuestionario] = useState(null);
   const [indicePergunta, setIndicePergunta] = useState(0);
   const [pontuacao, setPontuacao] = useState(0);
   const [finalizado, setFinalizado] = useState(false);
 
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-
-  const [idTentativa, setIdTentativa] = useState(null);
-
   async function iniciarQuestionario() {
     try {
-      // Buscar questionário
-      const response = await fetch("http://localhost:3001/questionario");
-      const data = await response.json();
-
-      // Criar tentativa
-      const responseTentativa = await fetch(
-        "http://localhost:3001/questionario/iniciar",
+      // 1️⃣ Criar ou buscar usuário
+      const responseUsuario = await fetch(
+        "http://localhost:3001/usuarios",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            questionarioId: data.id,
-            nome,
-            email
-          })
+          body: JSON.stringify({ nome, email })
         }
       );
 
-      const tentativa = await responseTentativa.json();
+      if (!responseUsuario.ok) {
+        throw new Error("Erro ao salvar/buscar usuário");
+      }
 
-      setQuestionario(data);
-      setIdTentativa(tentativa.idTentativa);
+      const usuarioData = await responseUsuario.json();
+      setUsuario(usuarioData);
 
-      console.log({
-        idQuestionario: data.id,
-        idTentativa: tentativa.idTentativa
-      });
+      // 2️⃣ Buscar questionário
+      const responseQuestionario = await fetch(
+        "http://localhost:3001/questionario"
+      );
+
+      const questionarioData = await responseQuestionario.json();
+      setQuestionario(questionarioData);
 
       setIndicePergunta(0);
       setPontuacao(0);
@@ -76,7 +72,9 @@ function App() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <button onClick={iniciarQuestionario}>Começar</button>
+        <button onClick={iniciarQuestionario}>
+          Começar
+        </button>
       </div>
     );
   }
@@ -84,28 +82,29 @@ function App() {
   if (finalizado) {
     return (
       <div>
-        <h2>Finalizado</h2>
-        <p>Pontuação: {pontuacao}</p>
-        <p>ID da tentativa: {idTentativa}</p>
+        <h2>Questionário Finalizado</h2>
+        <p><strong>Nome:</strong> {usuario.nome}</p>
+        <p><strong>Email:</strong> {usuario.email}</p>
+        <p><strong>Pontuação:</strong> {pontuacao}</p>
 
-        <button onClick={iniciarQuestionario}>Reiniciar</button>
+        <button onClick={() => setQuestionario(null)}>
+          Reiniciar
+        </button>
       </div>
     );
   }
 
-  if (!questionario.perguntas || questionario.perguntas.length === 0) {
-  return <p>Questionário sem perguntas.</p>;
-}
-
-const perguntaAtual = questionario.perguntas[indicePergunta];
-
+  const perguntaAtual = questionario.perguntas[indicePergunta];
 
   return (
     <div>
       <h2>{perguntaAtual.pergunta}</h2>
 
       {perguntaAtual.opcoes.map((opcao, index) => (
-        <button key={index} onClick={() => responder(opcao.pontos)}>
+        <button
+          key={index}
+          onClick={() => responder(opcao.pontos)}
+        >
           {opcao.descricao}
         </button>
       ))}
@@ -114,4 +113,3 @@ const perguntaAtual = questionario.perguntas[indicePergunta];
 }
 
 export default App;
-
