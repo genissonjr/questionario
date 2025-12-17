@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 /* ===============================
-   CONEXÃO COM O BANCO
+   CONEXÃO COM BANCO
 ================================ */
 const conexao = await mysql.createConnection({
   host: "localhost",
@@ -18,50 +18,13 @@ const conexao = await mysql.createConnection({
 });
 
 /* ===============================
-   CONTROLE DE TENTATIVAS (MEMÓRIA)
+   TENTATIVAS EM MEMÓRIA
 ================================ */
 let contadorTentativas = 0;
+const tentativas = [];
 
 /* ===============================
-   ROTA: CRIAR / BUSCAR USUÁRIO
-================================ */
-app.post("/usuarios", async (req, res) => {
-  try {
-    const { nome, email } = req.body;
-
-    if (!nome || !email) {
-      return res.status(400).json({ erro: "Nome e email obrigatórios" });
-    }
-
-    // Verificar se email já existe
-    const [usuarios] = await conexao.execute(
-      "SELECT id, nome, email FROM usuarios WHERE email = ?",
-      [email]
-    );
-
-    if (usuarios.length > 0) {
-      return res.json(usuarios[0]); // usuário já existe
-    }
-
-    // Criar novo usuário
-    const [resultado] = await conexao.execute(
-      "INSERT INTO usuarios (nome, email) VALUES (?, ?)",
-      [nome, email]
-    );
-
-    res.status(201).json({
-      id: resultado.insertId,
-      nome,
-      email
-    });
-  } catch (error) {
-    console.error("Erro ao salvar/buscar usuário:", error);
-    res.status(500).json({ erro: "Erro ao salvar/buscar usuário" });
-  }
-});
-
-/* ===============================
-   ROTA: BUSCAR QUESTIONÁRIO
+   BUSCAR QUESTIONÁRIO
 ================================ */
 app.get("/questionario", async (req, res) => {
   try {
@@ -70,9 +33,7 @@ app.get("/questionario", async (req, res) => {
     );
 
     const [opcoes] = await conexao.execute(
-      `SELECT id, descricao, pontos, pergunta_id
-       FROM opcoes
-       ORDER BY pergunta_id, ordem_op`
+      "SELECT pergunta_id, descricao, pontos FROM opcoes ORDER BY ordem_op"
     );
 
     const perguntasFormatadas = perguntas.map((p) => ({
@@ -88,7 +49,6 @@ app.get("/questionario", async (req, res) => {
 
     res.json({
       id: 1,
-      titulo: "Questionário",
       perguntas: perguntasFormatadas
     });
   } catch (error) {
@@ -98,14 +58,50 @@ app.get("/questionario", async (req, res) => {
 });
 
 /* ===============================
-   ROTA: INICIAR TENTATIVA
+   CRIAR / BUSCAR USUÁRIO
 ================================ */
-app.post("/questionario/iniciar", (req, res) => {
+app.post("/usuarios", async (req, res) => {
+  try {
+    const { nome, email } = req.body;
+
+    const [existente] = await conexao.execute(
+      "SELECT id FROM usuarios WHERE email = ?",
+      [email]
+    );
+
+    if (existente.length > 0) {
+      return res.json({ idUsuario: existente[0].id });
+    }
+
+    const [resultado] = await conexao.execute(
+      "INSERT INTO usuarios (nome, email) VALUES (?, ?)",
+      [nome, email]
+    );
+
+    res.json({ idUsuario: resultado.insertId });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao salvar/buscar usuário" });
+  }
+});
+
+/* ===============================
+   INICIAR / REINICIAR TENTATIVA
+================================ */
+app.post("/tentativas", (req, res) => {
   contadorTentativas++;
 
-  res.json({
-    idTentativa: contadorTentativas
-  });
+  const { idUsuario } = req.body;
+
+  const tentativa = {
+    idTentativa: contadorTentativas,
+    idUsuario,
+    data: new Date()
+  };
+
+  tentativas.push(tentativa);
+
+  res.json({ idTentativa: tentativa.idTentativa });
 });
 
 /* ===============================
